@@ -23,7 +23,7 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
          */
         $package
             ->name('laravel-scout-qdrant')
-            ->hasConfigFile();
+            ->hasConfigFile('scout-qdrant');
     }
 
     public function packageRegistered()

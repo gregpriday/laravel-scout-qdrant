@@ -2,9 +2,9 @@
     "name": "gregpriday/laravel-scout-qdrant",
     "description": "This is my package laravel-scout-qdrant",
     "keywords": [
-        "gregpriday",
         "laravel",
-        "laravel-scout-qdrant"
+        "laravel-scout-qdrant",
+        "vector search"
     ],
     "homepage": "https://github.com/gregpriday/laravel-scout-qdrant",
     "license": "MIT",

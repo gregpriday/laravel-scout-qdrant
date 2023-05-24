@@ -1,6 +1,7 @@
 <?php
 
 // config for GregPriday/LaravelScoutQdrant
+
 return [
     'qdrant' => [
         'host' => env('QDRANT_HOST', 'http://localhost'),
