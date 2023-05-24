@@ -195,9 +195,9 @@ class QdrantScoutEngine extends Engine
         });
     }
 
-    public function getTotalCount($results)
+    public function getTotalCount($results): int
     {
-        return $results['total'];
+        return count($results['result']);
     }
 
     /**
