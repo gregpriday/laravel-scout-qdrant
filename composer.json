@@ -36,7 +36,7 @@
     },
     "autoload": {
         "psr-4": {
-            "GregPriday\\LaravelScoutQdrant\\": "src/",
+            "GregPriday\\LaravelScoutQdrant\\": "src/"
         }
     },
     "autoload-dev": {
