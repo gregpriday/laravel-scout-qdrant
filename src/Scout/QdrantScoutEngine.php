@@ -2,6 +2,7 @@
 
 namespace GregPriday\LaravelScoutQdrant\Scout;
 
+use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerInterface;
 use Laravel\Scout\Engines\Engine;
 use OpenAI\Client;
 use Qdrant\Exception\InvalidArgumentException;
@@ -24,12 +25,12 @@ use Qdrant\Models\Filter\Filter;
 class QdrantScoutEngine extends Engine
 {
     private Qdrant $qdrant;
-    private Client $openai;
+    private VectorizerInterface $vectorizer;
 
-    public function __construct(Qdrant $qdrant, Client $openai)
+    public function __construct(Qdrant $qdrant, VectorizerInterface $vectorizer)
     {
         $this->qdrant = $qdrant;
-        $this->openai = $openai;
+        $this->vectorizer = $vectorizer;
     }
 
     public function update($models)
@@ -48,12 +49,7 @@ class QdrantScoutEngine extends Engine
                 continue;
             }
 
-            $response = $this->openai->embeddings()->create([
-                'model' => 'text-embedding-ada-002',
-                'input' => $searchableData['vector'] ?? json_encode($searchableData),
-            ]);
-
-            $embedding = $response->embeddings[0]->embedding;
+            $embedding = $this->vectorizer->embedDocument($searchableData['vector'] ?? json_encode($searchableData));
             $vector = new VectorStruct($embedding, 'vector');
 
             $points->addPoint(
@@ -106,12 +102,7 @@ class QdrantScoutEngine extends Engine
     {
         $collectionName = $builder->index ?: $builder->model->searchableAs();
 
-        $response = $this->openai->embeddings()->create([
-            'model' => 'text-embedding-ada-002',
-            'input' => $builder->query,
-        ]);
-
-        $embedding = $response->embeddings[0]->embedding;
+        $embedding = $this->vectorizer->embedQuery($builder->query);
         $vector = new VectorStruct($embedding, 'vector');
 
         $searchRequest = new SearchRequest($vector);

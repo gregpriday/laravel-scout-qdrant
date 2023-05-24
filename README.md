@@ -6,7 +6,7 @@ The Laravel Scout Qdrant Drivers package enables vector search capabilities with
 
 ## Prerequisites
 
-- [Qdrant](https://qdrant.tech/documentation/install/) - This package requires Qdrant to be installed and running. You can pull and run the docker image using the commands below:
+- [Qdrant](https://qdrant.tech/documentation/) - This package requires Qdrant to be installed and running. While you can install Qdrant locally, we recommend using [Qdrant Cloud](https://qdrant.tech/documentation/cloud/) for a more scalable and robust solution. If you choose to use a local installation, you can pull and run the docker image using the commands below:
 
 ```bash
 docker pull qdrant/qdrant
@@ -77,6 +77,40 @@ public function toSearchableArray()
 You can use the package just like you would use Laravel Scout, with the added benefit of vector-based searches which can provide more accurate and complex search results.
 
 Additional usage instructions can be found in the [Laravel Scout documentation](https://laravel.com/docs/scout).
+
+## Creating a Custom Vectorizer
+
+To create a custom vectorizer, first, ensure you have a trained model with OpenAI. After that, you can create a new class that implements `GregPriday\ScoutQdrant\Vectorizer`. This interface requires a single method: `vectorize(string $text): array`.
+
+For example:
+
+```php
+use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerInterface;
+
+class MyVectorizer implements VectorizerInterface
+{
+    public function embedDocument(string $text): array
+    {
+        // Create a vector from the text using your own model
+    }
+    
+    public function embedQuery(string $text): array
+    {
+        // Create a vector from the text using your own model
+    }
+}
+```
+
+After creating your custom vectorizer, you need to specify it in your `scout-qdrant.php` configuration file:
+
+```php
+return [
+    // other config values...
+    'vectorizer' => App\MyVectorizer::class,
+];
+```
+
+Now your custom vectorizer will be used to create vectors for your Scout records.
 
 ## Testing
 

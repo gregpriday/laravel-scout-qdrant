@@ -3,6 +3,7 @@
 namespace GregPriday\LaravelScoutQdrant;
 
 use GregPriday\LaravelScoutQdrant\Scout\QdrantScoutEngine;
+use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
 use Laravel\Scout\EngineManager;
 use OpenAI\Client;
 use Qdrant\Config;
@@ -37,12 +38,19 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
 
             return new Qdrant(new GuzzleClient($config));
         });
+
+        $this->app->singleton(VectorizerEngineManager::class, function ($app) {
+            return new VectorizerEngineManager($app);
+        });
     }
 
     public function packageBooted()
     {
         resolve(EngineManager::class)->extend('qdrant', function () {
-            return new QdrantScoutEngine(app(Qdrant::class), app(Client::class));
+            return new QdrantScoutEngine(
+                app(Qdrant::class),
+                app(VectorizerEngineManager::class)->driver()
+            );
         });
     }
 }
