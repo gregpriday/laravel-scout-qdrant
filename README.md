@@ -32,7 +32,7 @@ composer require gregpriday/laravel-scout-qdrant
 Publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag="laravel-scout-qdrant-config"
+php artisan vendor:publish --tag="scout-qdrant-config"
 ```
 
 ## Configuration
