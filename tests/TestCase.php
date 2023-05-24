@@ -1,36 +1,38 @@
 <?php
 
-namespace VendorName\Skeleton\Tests;
+namespace GregPriday\LaravelScoutQdrant\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Laravel\Scout\ScoutServiceProvider;
+use OpenAI\Laravel\ServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
-use VendorName\Skeleton\SkeletonServiceProvider;
+use GregPriday\LaravelScoutQdrant\LaravelScoutQdrantServiceProvider;
 
 class TestCase extends Orchestra
 {
     protected function setUp(): void
     {
         parent::setUp();
-
-        Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'VendorName\\Skeleton\\Database\\Factories\\'.class_basename($modelName).'Factory'
-        );
     }
 
     protected function getPackageProviders($app)
     {
         return [
-            SkeletonServiceProvider::class,
+            LaravelScoutQdrantServiceProvider::class,
+            ScoutServiceProvider::class,
+            ServiceProvider::class,
         ];
     }
 
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
+        config()->set('scout.driver', 'qdrant');
 
-        /*
-        $migration = include __DIR__.'/../database/migrations/create_skeleton_table.php.stub';
+        config()->set('openai.api_key', env('OPENAI_API_KEY'));
+        config()->set('openai.organization', env('OPENAI_ORGANIZATION'));
+
+        $migration = include __DIR__.'/migrations/create_article_table.php.stub';
         $migration->up();
-        */
     }
 }

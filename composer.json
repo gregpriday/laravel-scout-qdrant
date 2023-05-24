@@ -1,47 +1,47 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "gregpriday/laravel-scout-qdrant",
+    "description": "This is my package laravel-scout-qdrant",
     "keywords": [
-        ":vendor_name",
+        "gregpriday",
         "laravel",
-        ":package_slug"
+        "laravel-scout-qdrant"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/gregpriday/laravel-scout-qdrant",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Greg Priday",
+            "email": "greg@siteorigin.com",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.1",
-        "spatie/laravel-package-tools": "^1.14.0",
-        "illuminate/contracts": "^10.0"
+        "guzzlehttp/guzzle": "^7.7",
+        "hkulekci/qdrant": "^0.1.0",
+        "illuminate/contracts": "^10.0",
+        "laravel/scout": "^10.2",
+        "openai-php/laravel": "^0.5.0",
+        "spatie/laravel-package-tools": "^1.14.0"
     },
     "require-dev": {
         "laravel/pint": "^1.0",
         "nunomaduro/collision": "^7.9",
-        "nunomaduro/larastan": "^2.0.1",
         "orchestra/testbench": "^8.0",
         "pestphp/pest": "^2.0",
         "pestphp/pest-plugin-arch": "^2.0",
         "pestphp/pest-plugin-laravel": "^2.0",
-        "phpstan/extension-installer": "^1.1",
-        "phpstan/phpstan-deprecation-rules": "^1.0",
-        "phpstan/phpstan-phpunit": "^1.0",
+        "phpunit/phpunit": "^10.1",
         "spatie/laravel-ray": "^1.26"
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "GregPriday\\LaravelScoutQdrant\\": "src/",
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/"
+            "GregPriday\\LaravelScoutQdrant\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -55,16 +55,17 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "phpstan/extension-installer": true
+            "phpstan/extension-installer": true,
+            "php-http/discovery": true
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "GregPriday\\LaravelScoutQdrant\\LaravelScoutQdrantServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "LaravelScoutQdrant": "GregPriday\\LaravelScoutQdrant\\Facades\\LaravelScoutQdrant"
             }
         }
     },

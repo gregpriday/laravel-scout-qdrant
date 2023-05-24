@@ -1,71 +1,86 @@
-# :package_description
+# Laravel Scout Qdrant Drivers
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This repo can be used to scaffold a Laravel package. Follow these steps to get started:
+The Laravel Scout Qdrant Drivers package enables vector search capabilities within Laravel applications using Scout, Qdrant, and OpenAI. This package transforms your application's data into vectors using OpenAI, then indexes and makes them searchable using Qdrant, a powerful vector database management system.
 
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+> **Note**: This package is a work in progress and may not be ready for production use. However, with enough interest, I am dedicated to expanding and improving it.
 
-## Support us
+## Prerequisites
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
+- [Qdrant](https://qdrant.tech/documentation/install/) - This package requires Qdrant to be installed and running. You can pull and run the docker image using the commands below:
 
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
+```bash
+docker pull qdrant/qdrant
+docker run -p 6333:6333 -v $(pwd)/database/qdrant:/qdrant/storage qdrant/qdrant
+```
 
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+- [OpenAI for Laravel](https://github.com/openai-php/laravel) - This package also requires OpenAI to be set up for Laravel. You can publish the service provider with the command below:
+
+```bash
+php artisan vendor:publish --provider="OpenAI\Laravel\ServiceProvider"
+```
+
+Then, configure the OpenAI variables as per the instructions on the [OpenAI for Laravel page](https://github.com/openai-php/laravel).
 
 ## Installation
 
-You can install the package via composer:
+Install the package via Composer:
 
 ```bash
-composer require :vendor_slug/:package_slug
+composer require gregpriday/laravel-scout-qdrant
 ```
 
-You can publish and run the migrations with:
+Publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
-php artisan migrate
+php artisan vendor:publish --tag="laravel-scout-qdrant-config"
 ```
 
-You can publish the config file with:
+## Configuration
 
-```bash
-php artisan vendor:publish --tag=":package_slug-config"
-```
-
-This is the contents of the published config file:
+After installation, you need to configure the `qdrant` settings in your `config/scout-qdrant.php` file, which is published by the installation process:
 
 ```php
 return [
+    'qdrant' => [
+        'host' => env('QDRANT_HOST', 'http://localhost'),
+        'key' => env('QDRANT_API_KEY', null),
+    ]
 ];
 ```
 
-Optionally, you can publish the views using
+The `QDRANT_HOST` key defines the location of your Qdrant service. If you are using Qdrant Cloud or a Docker container on a different server, update this value accordingly. The `QDRANT_API_KEY` key is for specifying your Qdrant API key if necessary.
 
-```bash
-php artisan vendor:publish --tag=":package_slug-views"
+For more information on configuring Qdrant, please refer to the [Qdrant documentation](https://qdrant.tech/documentation/install/).
+
+In addition to the `qdrant` settings, ensure you have Scout configured to use the `qdrant` driver by setting the `SCOUT_DRIVER` in your `.env` file:
+
+```env
+SCOUT_DRIVER=qdrant
+```
+
+Your model should also include a `toSearchableArray` method that includes a `vector` key. This key gets converted into a vector using OpenAI:
+
+```php
+public function toSearchableArray()
+{
+    return [
+        'id' => $this->id,
+        'name' => $this->name,
+        'vector' => $this->text,
+        // more attributes...
+    ];
+}
 ```
 
 ## Usage
 
-```php
-$variable = new VendorName\Skeleton();
-echo $variable->echoPhrase('Hello, VendorName!');
-```
+You can use the package just like you would use Laravel Scout, with the added benefit of vector-based searches which can provide more accurate and complex search results.
+
+Additional usage instructions can be found in the [Laravel Scout documentation](https://laravel.com/docs/scout).
 
 ## Testing
+
+Run tests with:
 
 ```bash
 composer test
@@ -73,21 +88,23 @@ composer test
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+For more information on what has changed recently, please see the [CHANGELOG](CHANGELOG.md).
 
 ## Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+Details on
+
+how to contribute can be found in the [CONTRIBUTING](CONTRIBUTING.md) file.
 
 ## Security Vulnerabilities
 
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+For information on how to report a security vulnerability, please review [our security policy](../../security/policy).
 
 ## Credits
 
-- [:author_name](https://github.com/:author_username)
+- [Greg Priday](https://github.com/gregpriday)
 - [All Contributors](../../contributors)
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The Laravel Scout Qdrant Drivers is open-source software licensed under the [MIT license](LICENSE.md).
