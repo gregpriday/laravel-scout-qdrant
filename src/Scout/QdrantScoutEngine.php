@@ -86,14 +86,14 @@ class QdrantScoutEngine extends Engine
     public function search(Builder $builder)
     {
         return $this->performSearch($builder, [
-            'limit' => $builder->limit ?? 10,
+            'limit' => $builder->limit ?? 100,
         ]);
     }
 
     public function paginate(Builder $builder, $perPage, $page)
     {
         return $this->performSearch($builder, [
-            'limit' => $perPage ?? 10,
+            'limit' => $perPage ?? 100,
             'offset' => ($page - 1) * $perPage,
         ]);
     }
