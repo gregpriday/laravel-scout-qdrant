@@ -80,7 +80,7 @@ Additional usage instructions can be found in the [Laravel Scout documentation](
 
 ## Creating a Custom Vectorizer
 
-To create a custom vectorizer, first, ensure you have a trained model with OpenAI. After that, you can create a new class that implements `GregPriday\ScoutQdrant\Vectorizer`. This interface requires a single method: `vectorize(string $text): array`.
+To create a custom vectorizer, first, ensure you have a custom model or alternative 3rd party service. After that, you can create a new class that implements `GregPriday\ScoutQdrant\Vectorizer`. This interface requires a single method: `vectorize(string $text): array`.
 
 For example:
 
