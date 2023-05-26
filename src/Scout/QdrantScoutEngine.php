@@ -78,9 +78,7 @@ class QdrantScoutEngine extends Engine
         $collectionName = $models->first()->searchableAs();
         $ids = $models->map->getScoutKey()->all();
 
-        foreach ($ids as $id) {
-            $this->qdrant->collections($collectionName)->points()->delete($id);
-        }
+        $this->qdrant->collections($collectionName)->points()->delete($ids);
     }
 
     public function search(Builder $builder)
