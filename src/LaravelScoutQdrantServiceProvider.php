@@ -2,6 +2,11 @@
 
 namespace GregPriday\LaravelScoutQdrant;
 
+use GregPriday\LaravelScoutQdrant\Commands\QdrantInstallCommand;
+use GregPriday\LaravelScoutQdrant\Commands\QdrantRestartCommand;
+use GregPriday\LaravelScoutQdrant\Commands\QdrantStartCommand;
+use GregPriday\LaravelScoutQdrant\Commands\QdrantStatusCommand;
+use GregPriday\LaravelScoutQdrant\Commands\QdrantTerminateCommand;
 use GregPriday\LaravelScoutQdrant\Scout\QdrantScoutEngine;
 use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
 use Laravel\Scout\EngineManager;
@@ -16,13 +21,15 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/spatie/laravel-package-tools
-         */
         $package
             ->name('laravel-scout-qdrant')
+            ->hasConsoleCommands([
+                QdrantInstallCommand::class,
+                QdrantRestartCommand::class,
+                QdrantStartCommand::class,
+                QdrantStatusCommand::class,
+                QdrantTerminateCommand::class,
+            ])
             ->hasConfigFile('scout-qdrant');
     }
 
