@@ -78,6 +78,64 @@ You can use the package just like you would use Laravel Scout, with the added be
 
 Additional usage instructions can be found in the [Laravel Scout documentation](https://laravel.com/docs/scout).
 
+## Commands
+
+### Install Qdrant
+
+You can pull the Qdrant Docker image by running:
+
+```bash
+php artisan qdrant:install
+```
+
+This command also checks if Docker is installed on your machine. If it isn't, it will provide instructions on how to do so.
+
+### Start Qdrant
+
+Start your Qdrant Docker container with:
+
+```bash
+php artisan qdrant:start
+```
+
+By default, this command will start Qdrant with the port set to 6333 and the storage path set to `database/qdrant`. If you wish to specify a different port or storage path, you can do so with the `--port` and `--storage-path` options, respectively:
+
+```bash
+php artisan qdrant:start --port=6334 --storage-path=custom/qdrant
+```
+
+### Restart Qdrant
+
+Restart your Qdrant Docker container with:
+
+```bash
+php artisan qdrant:restart
+```
+
+Like the `qdrant:start` command, the `qdrant:restart` command accepts the `--port` and `--storage-path` options.
+
+### Check Qdrant Status
+
+Check the status of your Qdrant Docker container by running:
+
+```bash
+php artisan qdrant:status
+```
+
+This command will show you if your Qdrant Docker container is running, along with details such as its container ID, image, command, creation time, status, ports, and name.
+
+### Terminate Qdrant
+
+Terminate your Qdrant Docker container with:
+
+```bash
+php artisan qdrant:terminate
+```
+
+## More Information
+
+For more information on using these commands, as well as the rest of the functionality provided by the Laravel Scout Qdrant Drivers package, please refer to the sections above.
+
 ## Creating a Custom Vectorizer
 
 To create a custom vectorizer, first, ensure you have a custom model or alternative 3rd party service. After that, you can create a new class that implements `GregPriday\ScoutQdrant\Vectorizer`. This interface requires a single method: `vectorize(string $text): array`.
