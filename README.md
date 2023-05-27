@@ -1,25 +1,25 @@
 # Laravel Scout Qdrant Drivers
 
-The Laravel Scout Qdrant Drivers package enables vector search capabilities within Laravel applications using Scout, Qdrant, and OpenAI. This package transforms your application's data into vectors using OpenAI, then indexes and makes them searchable using Qdrant, a powerful vector database management system.
+The Laravel Scout Qdrant Drivers package introduces vector search capabilities within Laravel applications by leveraging Scout, Qdrant, and OpenAI. This package transforms your application's data into vectors using OpenAI, then indexes and makes them searchable using Qdrant, a powerful vector database management system.
 
-> **Note**: This package is a work in progress and may not be ready for production use. However, with enough interest, I am dedicated to expanding and improving it.
+> **Note**: This package is a work in progress and might not be ready for production use yet. However, with growing interest and support, the plan is to expand and improve it continually.
 
 ## Prerequisites
 
-- [Qdrant](https://qdrant.tech/documentation/) - This package requires Qdrant to be installed and running. While you can install Qdrant locally, we recommend using [Qdrant Cloud](https://qdrant.tech/documentation/cloud/) for a more scalable and robust solution. If you choose to use a local installation, you can pull and run the docker image using the commands below:
+- [Qdrant](https://qdrant.tech/documentation/) - Qdrant installation is a prerequisite for this package. We recommend using [Qdrant Cloud](https://qdrant.tech/documentation/cloud/) for a more scalable and robust solution, but local installation is also possible. You can pull and run the docker image using the following commands:
 
 ```bash
 docker pull qdrant/qdrant
 docker run -p 6333:6333 -v $(pwd)/database/qdrant:/qdrant/storage qdrant/qdrant
 ```
 
-- [OpenAI for Laravel](https://github.com/openai-php/laravel) - This package also requires OpenAI to be set up for Laravel. You can publish the service provider with the command below:
+- [OpenAI for Laravel](https://github.com/openai-php/laravel) - OpenAI setup for Laravel is also necessary. Publish the service provider using:
 
 ```bash
 php artisan vendor:publish --provider="OpenAI\Laravel\ServiceProvider"
 ```
 
-Then, configure the OpenAI variables as per the instructions on the [OpenAI for Laravel page](https://github.com/openai-php/laravel).
+Follow the instructions on the [OpenAI for Laravel page](https://github.com/openai-php/laravel) to configure OpenAI variables.
 
 ## Installation
 
@@ -29,7 +29,7 @@ Install the package via Composer:
 composer require gregpriday/laravel-scout-qdrant
 ```
 
-Publish the config file with:
+Publish the configuration file with:
 
 ```bash
 php artisan vendor:publish --tag="scout-qdrant-config"
@@ -37,22 +37,28 @@ php artisan vendor:publish --tag="scout-qdrant-config"
 
 ## Configuration
 
-After installation, you need to configure the `qdrant` settings in your `config/scout-qdrant.php` file, which is published by the installation process:
+After installation, you should configure the `qdrant` settings in your `config/scout-qdrant.php` file:
 
 ```php
 return [
     'qdrant' => [
         'host' => env('QDRANT_HOST', 'http://localhost'),
         'key' => env('QDRANT_API_KEY', null),
-    ]
+        'storage' => env('QDRANT_STORAGE', 'database/qdrant'),
+    ],
+    'vectorizer' => env('QDRANT_VECTORIZER', 'openai'),
 ];
 ```
 
 The `QDRANT_HOST` key defines the location of your Qdrant service. If you are using Qdrant Cloud or a Docker container on a different server, update this value accordingly. The `QDRANT_API_KEY` key is for specifying your Qdrant API key if necessary.
 
-For more information on configuring Qdrant, please refer to the [Qdrant documentation](https://qdrant.tech/documentation/install/).
+The `QDRANT_STORAGE` key indicates the location where Qdrant will store its files. By default, this is set to `database/qdrant`, but you can specify a different location depending on your setup.
 
-In addition to the `qdrant` settings, ensure you have Scout configured to use the `qdrant` driver by setting the `SCOUT_DRIVER` in your `.env` file:
+The `QDRANT_VECTORIZER` key is used to define the vectorizer to be used. By default, it's set to 'openai'. If you have a custom vectorizer, you can specify it here.
+
+For more details on configuring Qdrant, please refer to the [Qdrant documentation](https://qdrant.tech/documentation/install/).
+
+Additionally, ensure Scout is configured to use the `qdrant` driver by setting the `SCOUT_DRIVER` in your `.env` file:
 
 ```env
 SCOUT_DRIVER=qdrant
@@ -74,31 +80,31 @@ public function toSearchableArray()
 
 ## Usage
 
-You can use the package just like you would use Laravel Scout, with the added benefit of vector-based searches which can provide more accurate and complex search results.
+You can use the package just as you would use Laravel Scout, but with the added advantage of vector-based searches. This functionality offers more precise and complex search results.
 
-Additional usage instructions can be found in the [Laravel Scout documentation](https://laravel.com/docs/scout).
+For additional instructions on usage, please visit the [Laravel Scout documentation](https://laravel.com/docs/scout).
 
-## Commands
+## Qdrant Docker Management Commands
+
+Manage your Qdrant Docker container with the following commands:
 
 ### Install Qdrant
-
-You can pull the Qdrant Docker image by running:
 
 ```bash
 php artisan qdrant:install
 ```
 
-This command also checks if Docker is installed on your machine. If it isn't, it will provide instructions on how to do so.
+This command pulls the Qdrant Docker image and checks whether Docker is installed on your machine.
+
+If it's not, the command provides instructions on installation.
 
 ### Start Qdrant
-
-Start your Qdrant Docker container with:
 
 ```bash
 php artisan qdrant:start
 ```
 
-By default, this command will start Qdrant with the port set to 6333 and the storage path set to `database/qdrant`. If you wish to specify a different port or storage path, you can do so with the `--port` and `--storage-path` options, respectively:
+Starts your Qdrant Docker container with the default port set to 6333 and storage path as `database/qdrant`. You can specify a different port or storage path with the `--port` and `--storage-path` options, respectively:
 
 ```bash
 php artisan qdrant:start --port=6334 --storage-path=custom/qdrant
@@ -106,41 +112,33 @@ php artisan qdrant:start --port=6334 --storage-path=custom/qdrant
 
 ### Restart Qdrant
 
-Restart your Qdrant Docker container with:
-
 ```bash
 php artisan qdrant:restart
 ```
 
-Like the `qdrant:start` command, the `qdrant:restart` command accepts the `--port` and `--storage-path` options.
+Restarts your Qdrant Docker container. This command accepts the `--port` and `--storage-path` options.
 
 ### Check Qdrant Status
-
-Check the status of your Qdrant Docker container by running:
 
 ```bash
 php artisan qdrant:status
 ```
 
-This command will show you if your Qdrant Docker container is running, along with details such as its container ID, image, command, creation time, status, ports, and name.
+Provides the status of your Qdrant Docker container, including details like container ID, image, command, creation time, status, ports, and name.
 
 ### Terminate Qdrant
-
-Terminate your Qdrant Docker container with:
 
 ```bash
 php artisan qdrant:terminate
 ```
 
-## More Information
-
-For more information on using these commands, as well as the rest of the functionality provided by the Laravel Scout Qdrant Drivers package, please refer to the sections above.
+Terminates your Qdrant Docker container.
 
 ## Creating a Custom Vectorizer
 
-To create a custom vectorizer, first, ensure you have a custom model or alternative 3rd party service. After that, you can create a new class that implements `GregPriday\ScoutQdrant\Vectorizer`. This interface requires a single method: `vectorize(string $text): array`.
+To create a custom vectorizer, ensure you have a custom model or a third-party service. Then, create a new class that implements `GregPriday\ScoutQdrant\Vectorizer`. This interface requires a single method: `vectorize(string $text): array`.
 
-For example:
+Example:
 
 ```php
 use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerInterface;
@@ -149,17 +147,17 @@ class MyVectorizer implements VectorizerInterface
 {
     public function embedDocument(string $text): array
     {
-        // Create a vector from the text using your own model
+        // Create a vector from the text using your model
     }
     
     public function embedQuery(string $text): array
     {
-        // Create a vector from the text using your own model
+        // Create a vector from the text using your model
     }
 }
 ```
 
-After creating your custom vectorizer, you need to specify it in your `scout-qdrant.php` configuration file:
+Specify your custom vectorizer in your `scout-qdrant.php` configuration file:
 
 ```php
 return [
@@ -172,7 +170,7 @@ Now your custom vectorizer will be used to create vectors for your Scout records
 
 ## Testing
 
-Run tests with:
+Execute tests with:
 
 ```bash
 composer test
@@ -180,17 +178,15 @@ composer test
 
 ## Changelog
 
-For more information on what has changed recently, please see the [CHANGELOG](CHANGELOG.md).
+Visit the [CHANGELOG](CHANGELOG.md) for updates and changes.
 
 ## Contributing
 
-Details on
-
-how to contribute can be found in the [CONTRIBUTING](CONTRIBUTING.md) file.
+Guidelines for contributing can be found in the [CONTRIBUTING](CONTRIBUTING.md) file.
 
 ## Security Vulnerabilities
 
-For information on how to report a security vulnerability, please review [our security policy](../../security/policy).
+If you discover a security vulnerability, please follow our [security policy](../../security/policy) to report it.
 
 ## Credits
 
