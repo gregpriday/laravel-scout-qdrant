@@ -6,7 +6,7 @@ use GregPriday\LaravelScoutQdrant\Commands\QdrantInstallCommand;
 use GregPriday\LaravelScoutQdrant\Commands\QdrantRestartCommand;
 use GregPriday\LaravelScoutQdrant\Commands\QdrantStartCommand;
 use GregPriday\LaravelScoutQdrant\Commands\QdrantStatusCommand;
-use GregPriday\LaravelScoutQdrant\Commands\QdrantTerminateCommand;
+use GregPriday\LaravelScoutQdrant\Commands\QdrantStopCommand;
 use GregPriday\LaravelScoutQdrant\Scout\QdrantScoutEngine;
 use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
 use Laravel\Scout\EngineManager;
@@ -28,7 +28,7 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
                 QdrantRestartCommand::class,
                 QdrantStartCommand::class,
                 QdrantStatusCommand::class,
-                QdrantTerminateCommand::class,
+                QdrantStopCommand::class,
             ])
             ->hasConfigFile('scout-qdrant');
     }

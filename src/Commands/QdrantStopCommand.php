@@ -4,9 +4,11 @@ namespace GregPriday\LaravelScoutQdrant\Commands;
 
 use Illuminate\Console\Command;
 
-class QdrantTerminateCommand extends Command
+class QdrantStopCommand extends Command
 {
-    protected $signature = 'qdrant:terminate';
+    protected $signature = 'qdrant:stop';
+
+    protected $aliases = ['qdrant:terminate'];
 
     protected $description = 'Stops the Qdrant Docker container';
 

@@ -126,13 +126,13 @@ php artisan qdrant:status
 
 Provides the status of your Qdrant Docker container, including details like container ID, image, command, creation time, status, ports, and name.
 
-### Terminate Qdrant
+### Stop Qdrant
 
 ```bash
-php artisan qdrant:terminate
+php artisan qdrant:stop
 ```
 
-Terminates your Qdrant Docker container.
+Stops your Qdrant Docker container.
 
 ## Creating a Custom Vectorizer
 
