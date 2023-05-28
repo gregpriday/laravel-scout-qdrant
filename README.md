@@ -6,12 +6,7 @@ The Laravel Scout Qdrant Drivers package introduces vector search capabilities w
 
 ## Prerequisites
 
-- [Qdrant](https://qdrant.tech/documentation/) - Qdrant installation is a prerequisite for this package. We recommend using [Qdrant Cloud](https://qdrant.tech/documentation/cloud/) for a more scalable and robust solution, but local installation is also possible. You can pull and run the docker image using the following commands:
-
-```bash
-docker pull qdrant/qdrant
-docker run -p 6333:6333 -v $(pwd)/database/qdrant:/qdrant/storage qdrant/qdrant
-```
+- [Qdrant](https://qdrant.tech/documentation/) - Qdrant installation is a prerequisite for this package. We recommend using [Qdrant Cloud](https://qdrant.tech/documentation/cloud/) for a more scalable and robust solution, but local installation is also possible. See Qdrant installation instructions [here](https://qdrant.tech/documentation/quick_start/#installation).
 
 - [OpenAI for Laravel](https://github.com/openai-php/laravel) - OpenAI setup for Laravel is also necessary. Publish the service provider using:
 
