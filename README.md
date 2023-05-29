@@ -129,7 +129,7 @@ Provides the status of your Qdrant Docker container, including details like cont
 php artisan qdrant:stop
 ```
 
-Stops your Qdrant Docker container.
+Stops your Qdrant Docker container. Use `--kill` to kill the container instead of stopping it.
 
 ## Creating a Custom Vectorizer
 
