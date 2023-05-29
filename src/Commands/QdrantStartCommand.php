@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 
 class QdrantStartCommand extends Command
 {
-    protected $signature = 'qdrant:start {--storage= : Storage directory for Qdrant} {--port=6333 : Port to expose Qdrant service}';
+    protected $signature = 'qdrant:start {--storage= : Storage directory for Qdrant} {--port=6333 : Port to expose Qdrant service} {--restart=unless-stopped : Restart policy for the Qdrant Docker container}';
 
     protected $description = 'Starts the Qdrant Docker container';
 
@@ -26,8 +26,9 @@ class QdrantStartCommand extends Command
         }
 
         $port = $this->option('port');
+        $restartPolicy = $this->option('restart');
 
-        exec("docker run -d -p $port:6333 -v $storageDir:/qdrant/storage qdrant/qdrant", $output, $return_var);
+        exec("docker run --restart=$restartPolicy -d -p $port:6333 -v $storageDir:/qdrant/storage qdrant/qdrant", $output, $return_var);
 
         if ($return_var !== 0) {
             $this->error('Failed to start Qdrant Docker container');

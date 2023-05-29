@@ -6,12 +6,7 @@ The Laravel Scout Qdrant Drivers package introduces vector search capabilities w
 
 ## Prerequisites
 
-- [Qdrant](https://qdrant.tech/documentation/) - Qdrant installation is a prerequisite for this package. We recommend using [Qdrant Cloud](https://qdrant.tech/documentation/cloud/) for a more scalable and robust solution, but local installation is also possible. You can pull and run the docker image using the following commands:
-
-```bash
-docker pull qdrant/qdrant
-docker run -p 6333:6333 -v $(pwd)/database/qdrant:/qdrant/storage qdrant/qdrant
-```
+- [Qdrant](https://qdrant.tech/documentation/) - Qdrant installation is a prerequisite for this package. We recommend using [Qdrant Cloud](https://qdrant.tech/documentation/cloud/) for a more scalable and robust solution, but local installation is also possible. See Qdrant installation instructions [here](https://qdrant.tech/documentation/quick_start/#installation).
 
 - [OpenAI for Laravel](https://github.com/openai-php/laravel) - OpenAI setup for Laravel is also necessary. Publish the service provider using:
 
@@ -94,9 +89,7 @@ Manage your Qdrant Docker container with the following commands:
 php artisan qdrant:install
 ```
 
-This command pulls the Qdrant Docker image and checks whether Docker is installed on your machine.
-
-If it's not, the command provides instructions on installation.
+This command pulls the Qdrant Docker image and checks whether Docker is installed on your machine. If it's not, the command provides instructions on installation.
 
 ### Start Qdrant
 
@@ -104,10 +97,10 @@ If it's not, the command provides instructions on installation.
 php artisan qdrant:start
 ```
 
-Starts your Qdrant Docker container with the default port set to 6333 and storage path as `database/qdrant`. You can specify a different port or storage path with the `--port` and `--storage-path` options, respectively:
+Starts your Qdrant Docker container with the default port set to 6333, storage path as `database/qdrant`, and restart policy as `unless-stopped`. You can specify a different port, storage path or restart policy with the `--port`, `--storage`, and `--restart` options, respectively:
 
 ```bash
-php artisan qdrant:start --port=6334 --storage-path=custom/qdrant
+php artisan qdrant:start --port=6334 --storage=custom/qdrant --restart=always
 ```
 
 ### Restart Qdrant
@@ -116,7 +109,11 @@ php artisan qdrant:start --port=6334 --storage-path=custom/qdrant
 php artisan qdrant:restart
 ```
 
-Restarts your Qdrant Docker container. This command accepts the `--port` and `--storage-path` options.
+Restarts your Qdrant Docker container. This command accepts the `--port`, `--storage`, and `--restart` options.
+
+```bash
+php artisan qdrant:restart --port=6334 --storage=custom/qdrant --restart=always
+```
 
 ### Check Qdrant Status
 
@@ -126,13 +123,13 @@ php artisan qdrant:status
 
 Provides the status of your Qdrant Docker container, including details like container ID, image, command, creation time, status, ports, and name.
 
-### Terminate Qdrant
+### Stop Qdrant
 
 ```bash
-php artisan qdrant:terminate
+php artisan qdrant:stop
 ```
 
-Terminates your Qdrant Docker container.
+Stops your Qdrant Docker container.
 
 ## Creating a Custom Vectorizer
 
