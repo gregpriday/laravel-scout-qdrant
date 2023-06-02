@@ -54,10 +54,10 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
 
     public function packageBooted()
     {
-        resolve(EngineManager::class)->extend('qdrant', function () {
+        resolve(EngineManager::class)->extend('qdrant', function ($app) {
             return new QdrantScoutEngine(
                 app(Qdrant::class),
-                app(VectorizerEngineManager::class)->driver()
+                app(VectorizerEngineManager::class)
             );
         });
     }

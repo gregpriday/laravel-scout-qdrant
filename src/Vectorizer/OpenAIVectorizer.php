@@ -3,6 +3,7 @@
 namespace GregPriday\LaravelScoutQdrant\Vectorizer;
 
 use OpenAI\Client;
+use Qdrant\Models\Request\VectorParams;
 
 class OpenAIVectorizer implements VectorizerInterface
 {
@@ -11,6 +12,11 @@ class OpenAIVectorizer implements VectorizerInterface
     public function __construct(Client $client)
     {
         $this->client = $client;
+    }
+
+    public function vectorParams(): VectorParams
+    {
+        return new VectorParams(1536, VectorParams::DISTANCE_COSINE);
     }
 
     public function embedDocument(string $document): array

@@ -2,12 +2,12 @@
 
 namespace GregPriday\LaravelScoutQdrant\Scout;
 
+use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
 use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerInterface;
 use Laravel\Scout\Engines\Engine;
-use OpenAI\Client;
 use Qdrant\Exception\InvalidArgumentException;
 use Qdrant\Models\Filter\Condition\MatchBool;
-use Qdrant\Models\Request\VectorParams;
+use Qdrant\Models\MultiVectorStruct;
 use Qdrant\Qdrant;
 use Qdrant\Models\PointsStruct;
 use Qdrant\Models\PointStruct;
@@ -25,12 +25,15 @@ use Qdrant\Models\Filter\Filter;
 class QdrantScoutEngine extends Engine
 {
     private Qdrant $qdrant;
-    private VectorizerInterface $vectorizer;
+    private VectorizerEngineManager $vectorizerEngineManager;
+    private string $vectorField;
 
-    public function __construct(Qdrant $qdrant, VectorizerInterface $vectorizer)
+    const DEFAULT_VECTOR_FIELD = 'document';
+
+    public function __construct(Qdrant $qdrant, VectorizerEngineManager $vectorizerEngineManager)
     {
         $this->qdrant = $qdrant;
-        $this->vectorizer = $vectorizer;
+        $this->vectorizerEngineManager = $vectorizerEngineManager;
     }
 
     public function update($models)
@@ -40,7 +43,6 @@ class QdrantScoutEngine extends Engine
         }
 
         $collectionName = $models->first()->searchableAs();
-        $points = new PointsStruct();
 
         foreach ($models as $model) {
             $searchableData = $model->toSearchableArray();
@@ -49,22 +51,43 @@ class QdrantScoutEngine extends Engine
                 continue;
             }
 
-            $embedding = $this->vectorizer->embedDocument($searchableData['vector'] ?? json_encode($searchableData));
-            $vector = new VectorStruct($embedding, 'vector');
+            $vectors = new MultiVectorStruct();
+
+            foreach ($searchableData as $name => $data) {
+                // If a '^' character is found at the start of the name, vectorize the data
+                if (str_starts_with($name, '^')) {
+                    $name = substr($name, 1); // Extract the actual name of the field
+                    $vectorizedData = $this->vectorizerEngineManager->driver($model->getVectorizer($name))
+                        ->embedDocument($data);
+                    $vectors->addVector($name, $vectorizedData);
+                    unset($searchableData[$name]); // Remove the vectorized field from the searchable data
+                }
+            }
+
+            // If no vectors were added, create a 'document' vector from the joined string values
+            if ($vectors->count() === 0) {
+                $documentData = implode("\n\n", array_map('strval', $searchableData));
+                $documentVector = $this->vectorizerEngineManager->driver($model->getDefaultVectorizer())
+                    ->embedDocument($documentData);
+                $vectors->addVector(self::DEFAULT_VECTOR_FIELD, $documentVector);
+            }
+
+            $points = new PointsStruct();
 
             $points->addPoint(
                 new PointStruct(
                     (int) $model->getScoutKey(),
-                    $vector,
+                    $vectors,
                     $searchableData
                 )
             );
-        }
 
-        if (!empty($points)) {
-            $this->qdrant->collections($collectionName)->points()->upsert($points);
+            if (!empty($points)) {
+                $this->qdrant->collections($collectionName)->points()->upsert($points);
+            }
         }
     }
+
 
     /**
      * @throws InvalidArgumentException
@@ -96,12 +119,24 @@ class QdrantScoutEngine extends Engine
         ]);
     }
 
+    public function setVectorField(string $vectorField): self
+    {
+        $this->vectorField = $vectorField;
+        return $this;
+    }
+
+    public function getVectorField(): string
+    {
+        return $this->vectorField ?? self::DEFAULT_VECTOR_FIELD;
+    }
+
     protected function performSearch(Builder $builder, array $options = [])
     {
         $collectionName = $builder->index ?: $builder->model->searchableAs();
+        $vectorField = $this->getVectorField() ?? $builder->model->getVectorField();
 
         $embedding = $this->vectorizer->embedQuery($builder->query);
-        $vector = new VectorStruct($embedding, 'vector');
+        $vector = new VectorStruct($embedding, $vectorField);
 
         $searchRequest = new SearchRequest($vector);
         $searchRequest->setLimit($options['limit']);
@@ -214,10 +249,23 @@ class QdrantScoutEngine extends Engine
      */
     public function createIndex($name, array $options = [])
     {
-        $dimensions = $options['dimensions'] ?? 1536;
+        if (!class_exists($name)) {
+            throw new InvalidArgumentException('Index name must be a fully qualified class name');
+        }
+
+        $model = new $name;
+
         $createCollection = new CreateCollection();
-        $createCollection->addVector(new VectorParams($dimensions, VectorParams::DISTANCE_COSINE), 'vector');
-        $this->qdrant->collections($name)->create($name, $createCollection);
+
+        foreach ($model->getVectorizers() as $vectorField => $vectorizerClass) {
+            // Using the engine manager to get the driver
+            $vectorizer = $this->vectorizerEngineManager->driver($vectorizerClass);
+            $createCollection->addVector($vectorizer->vectorParams(), $vectorField);
+        }
+
+        $indexName = $model->searchableAs();
+
+        $this->qdrant->collections($indexName)->create($createCollection);
     }
 
     /**
@@ -225,7 +273,13 @@ class QdrantScoutEngine extends Engine
      */
     public function deleteIndex($name)
     {
-        return $this->qdrant->collections($name)->delete($name);
+        if (!class_exists($name)) {
+            throw new InvalidArgumentException('Index name must be a fully qualified class name');
+        }
+        $model = new $name;
+        $indexName = $model->searchableAs();
+
+        return $this->qdrant->collections($indexName)->delete();
     }
 
     protected function usesSoftDelete($model): bool

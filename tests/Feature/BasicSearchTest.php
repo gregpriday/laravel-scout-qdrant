@@ -52,6 +52,7 @@ class BasicSearchTest extends TestCase
         ]);
 
         $result = Article::search('how many days did it take to build Rome?')
+            ->paginate(10)
             ->get()
             ->pluck('search_score', 'title');
 
