@@ -31,7 +31,8 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
                 QdrantStopCommand::class,
                 QdrantUpdateCommand::class,
             ])
-            ->hasConfigFile('scout-qdrant');
+            ->hasConfigFile('scout-qdrant')
+            ->hasMigration('create_vectorization_metadata_table');
     }
 
     public function packageRegistered()

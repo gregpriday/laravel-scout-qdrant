@@ -2,8 +2,11 @@
 
 namespace GregPriday\LaravelScoutQdrant\Scout;
 
+use GregPriday\LaravelScoutQdrant\Models\Vectorizable;
 use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
 use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerInterface;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Engines\Engine;
 use Qdrant\Exception\InvalidArgumentException;
 use Qdrant\Models\Filter\Condition\MatchBool;
@@ -28,8 +31,6 @@ class QdrantScoutEngine extends Engine
     private VectorizerEngineManager $vectorizerEngineManager;
     private string $vectorField;
 
-    const DEFAULT_VECTOR_FIELD = 'document';
-
     public function __construct(Qdrant $qdrant, VectorizerEngineManager $vectorizerEngineManager)
     {
         $this->qdrant = $qdrant;
@@ -43,6 +44,7 @@ class QdrantScoutEngine extends Engine
         }
 
         $collectionName = $models->first()->searchableAs();
+        $points = new PointsStruct();
 
         foreach ($models as $model) {
             $searchableData = $model->toSearchableArray();
@@ -51,43 +53,53 @@ class QdrantScoutEngine extends Engine
                 continue;
             }
 
+            // Get the current point from the collection
+            try{
+                $currentPoint = $this->qdrant->collections($collectionName)->points()->id($model->getScoutKey());
+                $currentVectors = $currentPoint['result']['vector'];
+            } catch (InvalidArgumentException $e) {
+                $currentPoint = null;
+            }
+
             $vectors = new MultiVectorStruct();
 
-            foreach ($searchableData as $name => $data) {
-                // If a '^' character is found at the start of the name, vectorize the data
-                if (str_starts_with($name, '^')) {
-                    $name = substr($name, 1); // Extract the actual name of the field
-                    $vectorizedData = $this->vectorizerEngineManager->driver($model->getVectorizer($name))
-                        ->embedDocument($data);
-                    $vectors->addVector($name, $vectorizedData);
-                    unset($searchableData[$name]); // Remove the vectorized field from the searchable data
+            foreach ($model->getVectorizers() as $name => $vectorizerClass) {
+                $data = $searchableData[$name] ?? null;
+                if (!$data) {
+                    continue;
                 }
-            }
 
-            // If no vectors were added, create a 'document' vector from the joined string values
-            if ($vectors->count() === 0) {
-                $documentData = implode("\n\n", array_map('strval', $searchableData));
-                $documentVector = $this->vectorizerEngineManager->driver($model->getDefaultVectorizer())
-                    ->embedDocument($documentData);
-                $vectors->addVector(self::DEFAULT_VECTOR_FIELD, $documentVector);
-            }
+                // If the field hasn't changed, fetch the vector from $currentPoint
+                if (!$model->hasVectorFieldChanged($name, $data) && isset($currentVectors[$name])) {
+                    $vectorizedData = $currentVectors[$name];
+                }
+                // If the field has changed or doesn't exist in $currentPoint, use the vectorizer
+                else {
+                    $vectorizer = $this->vectorizerEngineManager->driver($vectorizerClass);
+                    $vectorizedData = $vectorizer->embedDocument($data);
+                    $model->setVectorFieldHash($name, $data);
+                }
 
-            $points = new PointsStruct();
+                $vectors->addVector($name, $vectorizedData);
+                unset($searchableData[$name]); // Remove the vectorized field from the searchable data
+            }
 
             $points->addPoint(
                 new PointStruct(
                     (int) $model->getScoutKey(),
+                    // Vectors are stored as a MultiVectorStruct
                     $vectors,
+                    // We're using the remaining searchable data as the payload
                     $searchableData
                 )
             );
+        }
 
-            if (!empty($points)) {
-                $this->qdrant->collections($collectionName)->points()->upsert($points);
-            }
+        // Perform the bulk upsert operation
+        if ($points->count()) {
+            $this->qdrant->collections($collectionName)->points()->upsert($points);
         }
     }
-
 
     /**
      * @throws InvalidArgumentException
@@ -108,6 +120,7 @@ class QdrantScoutEngine extends Engine
     {
         return $this->performSearch($builder, [
             'limit' => $builder->limit ?? 100,
+            'field' => $builder->options['field'] ?? null
         ]);
     }
 
@@ -116,26 +129,17 @@ class QdrantScoutEngine extends Engine
         return $this->performSearch($builder, [
             'limit' => $perPage ?? 100,
             'offset' => ($page - 1) * $perPage,
+            'field' => $builder->options['field'] ?? null
         ]);
-    }
-
-    public function setVectorField(string $vectorField): self
-    {
-        $this->vectorField = $vectorField;
-        return $this;
-    }
-
-    public function getVectorField(): string
-    {
-        return $this->vectorField ?? self::DEFAULT_VECTOR_FIELD;
     }
 
     protected function performSearch(Builder $builder, array $options = [])
     {
         $collectionName = $builder->index ?: $builder->model->searchableAs();
-        $vectorField = $this->getVectorField() ?? $builder->model->getVectorField();
+        $vectorField = $options['field'] ?? $builder->model->getDefaultVectorField();
 
-        $embedding = $this->vectorizer->embedQuery($builder->query);
+        $vectorizer = $this->vectorizerEngineManager->driver($builder->model->getVectorizers()[$vectorField] ?? 'openai');
+        $embedding = $vectorizer->embedQuery($builder->query);
         $vector = new VectorStruct($embedding, $vectorField);
 
         $searchRequest = new SearchRequest($vector);
@@ -249,12 +253,8 @@ class QdrantScoutEngine extends Engine
      */
     public function createIndex($name, array $options = [])
     {
-        if (!class_exists($name)) {
-            throw new InvalidArgumentException('Index name must be a fully qualified class name');
-        }
-
-        $model = new $name;
-
+        // Use getModelForTable
+        $model = $this->getModelForTableName($name);
         $createCollection = new CreateCollection();
 
         foreach ($model->getVectorizers() as $vectorField => $vectorizerClass) {
@@ -273,17 +273,41 @@ class QdrantScoutEngine extends Engine
      */
     public function deleteIndex($name)
     {
-        if (!class_exists($name)) {
-            throw new InvalidArgumentException('Index name must be a fully qualified class name');
-        }
-        $model = new $name;
-        $indexName = $model->searchableAs();
-
-        return $this->qdrant->collections($indexName)->delete();
+        return $this->qdrant->collections($name)->delete();
     }
 
     protected function usesSoftDelete($model): bool
     {
         return in_array(SoftDeletes::class, class_uses_recursive($model));
+    }
+
+    /**
+     * For a given table name, return an instance of that model.
+     *
+     * @param string $tableName The table name
+     * @return Model|null
+     */
+    private function getModelForTableName(string $tableName)
+    {
+        static $models = [];
+        if(isset($models[$tableName])) {
+            return $models[$tableName];
+        }
+
+        foreach( get_declared_classes() as $class ) {
+            if(
+                // subclass of eloquent model AND implements Vectorizable
+                is_subclass_of( $class, 'Illuminate\Database\Eloquent\Model' ) &&
+                in_array(Vectorizable::class, class_implements($class) )
+            ) {
+                $model = new $class;
+                if ($model->getTable() === $tableName){
+                    $models[$tableName] = $model;
+                    return $models[$tableName];
+                }
+            }
+        }
+
+        return null;
     }
 }

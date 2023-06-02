@@ -3,17 +3,11 @@
 namespace GregPriday\LaravelScoutQdrant\Vectorizer;
 
 use OpenAI\Client;
+use OpenAI\Laravel\Facades\OpenAI;
 use Qdrant\Models\Request\VectorParams;
 
 class OpenAIVectorizer implements VectorizerInterface
 {
-    private Client $client;
-
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
-    }
-
     public function vectorParams(): VectorParams
     {
         return new VectorParams(1536, VectorParams::DISTANCE_COSINE);
@@ -21,7 +15,7 @@ class OpenAIVectorizer implements VectorizerInterface
 
     public function embedDocument(string $document): array
     {
-        $response = $this->client->embeddings()->create([
+        $response = OpenAI::embeddings()->create([
             'model' => 'text-embedding-ada-002',
             'input' => $document,
         ]);
@@ -32,5 +26,10 @@ class OpenAIVectorizer implements VectorizerInterface
     public function embedQuery(string $query): array
     {
         return $this->embedDocument($query);
+    }
+
+    public function version(): string
+    {
+        return 'text-embedding-ada-002';
     }
 }

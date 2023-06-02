@@ -13,6 +13,8 @@ class TestCase extends Orchestra
     protected function setUp(): void
     {
         parent::setUp();
+
+
     }
 
     protected function getPackageProviders($app)
@@ -32,7 +34,10 @@ class TestCase extends Orchestra
         config()->set('openai.api_key', env('OPENAI_API_KEY'));
         config()->set('openai.organization', env('OPENAI_ORGANIZATION'));
 
-        $migration = include __DIR__.'/migrations/create_article_table.php.stub';
+        $migration = include __DIR__.'/migrations/create_article_table.php';
+        $migration->up();
+
+        $migration = include __DIR__.'/../database/migrations/create_vectorization_metadata_table.php';
         $migration->up();
     }
 }

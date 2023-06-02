@@ -3,10 +3,11 @@
 namespace GregPriday\LaravelScoutQdrant\Tests\Models;
 
 use GregPriday\LaravelScoutQdrant\Models\UsesVectorization;
+use GregPriday\LaravelScoutQdrant\Models\Vectorizable;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Scout\Searchable;
 
-class Article extends Model
+class Article extends Model implements Vectorizable
 {
     use Searchable, UsesVectorization;
 
@@ -17,14 +18,11 @@ class Article extends Model
 
     protected $vectorizers = [
         'title' => 'openai',
-        'document' => 'openai'
+        'body' => 'openai',
     ];
 
-    public function toSearchableArray()
+    public function toSearchableArray(): array
     {
-        return [
-            'title' => $this->title,
-            'document' => '#' . $this->title . "\n\n" . $this->body,
-        ];
+        return $this->toArray();
     }
 }
