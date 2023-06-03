@@ -12,8 +12,8 @@ trait UsesVectorization
         // When the model is deleted we need to delete the vectorization metadata
         static::deleted(function ($model) {
             DB::table('vectorization_metadata')
-                ->where('model', get_class($model))
-                ->where('model_id', $model->id)
+                ->where('vectorizable_type', get_class($model))
+                ->where('vectorizable_id', $model->id)
                 ->delete();
         });
     }
