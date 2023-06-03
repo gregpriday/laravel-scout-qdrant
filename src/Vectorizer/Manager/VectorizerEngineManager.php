@@ -1,6 +1,6 @@
 <?php
 
-namespace GregPriday\LaravelScoutQdrant\Vectorizer;
+namespace GregPriday\LaravelScoutQdrant\Vectorizer\Manager;
 
 use Closure;
 use GregPriday\LaravelScoutQdrant\Vectorizer\OpenAIVectorizer;
@@ -12,6 +12,18 @@ class VectorizerEngineManager extends Manager
     protected function createOpenaiDriver()
     {
         return $this->container->make(OpenAIVectorizer::class);
+    }
+
+    public function driver($driver = null)
+    {
+        // If there is a '::' in the name, then we consider everything after that JSON encoded options
+        $options = [];
+        if (str_contains($driver, '::')) {
+            [$driver, $options] = explode('::', $driver, 2);
+            $options = json_decode($options, true);
+        }
+
+        return parent::driver($driver)->setOptions($options);
     }
 
     public function extend($driver, Closure $callback)

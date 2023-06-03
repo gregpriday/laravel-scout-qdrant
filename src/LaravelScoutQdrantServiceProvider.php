@@ -9,7 +9,7 @@ use GregPriday\LaravelScoutQdrant\Commands\QdrantStatusCommand;
 use GregPriday\LaravelScoutQdrant\Commands\QdrantStopCommand;
 use GregPriday\LaravelScoutQdrant\Commands\QdrantUpdateCommand;
 use GregPriday\LaravelScoutQdrant\Scout\QdrantScoutEngine;
-use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
+use GregPriday\LaravelScoutQdrant\Vectorizer\Manager\VectorizerEngineManager;
 use Laravel\Scout\EngineManager;
 use Qdrant\Config;
 use Qdrant\Http\GuzzleClient;
@@ -31,7 +31,8 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
                 QdrantStopCommand::class,
                 QdrantUpdateCommand::class,
             ])
-            ->hasConfigFile('scout-qdrant');
+            ->hasConfigFile('scout-qdrant')
+            ->hasMigration('create_vectorization_metadata_table');
     }
 
     public function packageRegistered()
@@ -54,10 +55,10 @@ class LaravelScoutQdrantServiceProvider extends PackageServiceProvider
 
     public function packageBooted()
     {
-        resolve(EngineManager::class)->extend('qdrant', function () {
+        resolve(EngineManager::class)->extend('qdrant', function ($app) {
             return new QdrantScoutEngine(
                 app(Qdrant::class),
-                app(VectorizerEngineManager::class)->driver()
+                app(VectorizerEngineManager::class)
             );
         });
     }
