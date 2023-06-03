@@ -9,5 +9,8 @@ interface VectorizerInterface
     public function vectorParams(): VectorParams;
     public function embedDocument(string $document): array;
     public function embedQuery(string $document): array;
-    public function version(): string;
+
+    public function setOptions(array $options);
+    public function getOptions(): array;
+    public function getOption(string $option): mixed;
 }

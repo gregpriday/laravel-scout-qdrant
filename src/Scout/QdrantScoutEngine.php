@@ -2,28 +2,24 @@
 
 namespace GregPriday\LaravelScoutQdrant\Scout;
 
-use GregPriday\LaravelScoutQdrant\Models\Vectorizable;
-use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
-use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerInterface;
+use GregPriday\LaravelScoutQdrant\Vectorizer\Manager\VectorizerEngineManager;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
-use Laravel\Scout\Engines\Engine;
-use Qdrant\Exception\InvalidArgumentException;
-use Qdrant\Models\Filter\Condition\MatchBool;
-use Qdrant\Models\MultiVectorStruct;
-use Qdrant\Qdrant;
-use Qdrant\Models\PointsStruct;
-use Qdrant\Models\PointStruct;
-use Qdrant\Models\VectorStruct;
-use Qdrant\Models\Request\CreateCollection;
-use Qdrant\Models\Request\SearchRequest;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
-
-use Qdrant\Models\Filter\Condition\MatchString;
+use Laravel\Scout\Engines\Engine;
+use Qdrant\Exception\InvalidArgumentException;
+use Qdrant\Models\Filter\Condition\MatchBool;
 use Qdrant\Models\Filter\Condition\MatchInt;
+use Qdrant\Models\Filter\Condition\MatchString;
 use Qdrant\Models\Filter\Filter;
+use Qdrant\Models\MultiVectorStruct;
+use Qdrant\Models\PointsStruct;
+use Qdrant\Models\PointStruct;
+use Qdrant\Models\Request\CreateCollection;
+use Qdrant\Models\Request\SearchRequest;
+use Qdrant\Models\VectorStruct;
+use Qdrant\Qdrant;
 
 class QdrantScoutEngine extends Engine
 {
@@ -254,7 +250,7 @@ class QdrantScoutEngine extends Engine
     public function createIndex($name, array $options = [])
     {
         // Use getModelForTable
-        $model = $this->getModelForTableName($name);
+        $model = $this->getModelForSearchableName($name);
         $createCollection = new CreateCollection();
 
         foreach ($model->getVectorizers() as $vectorField => $vectorizerClass) {
@@ -284,30 +280,39 @@ class QdrantScoutEngine extends Engine
     /**
      * For a given table name, return an instance of that model.
      *
-     * @param string $tableName The table name
+     * @param string $name The table name
      * @return Model|null
+     * @note This function requires that you run `composer dumpautoload` after creating a new model.
      */
-    private function getModelForTableName(string $tableName)
+    private function getModelForSearchableName(string $name): ?Model
     {
         static $models = [];
-        if(isset($models[$tableName])) {
-            return $models[$tableName];
+        if (isset($models[$name])) {
+            return $models[$name];
         }
 
-        foreach( get_declared_classes() as $class ) {
-            if(
-                // subclass of eloquent model AND implements Vectorizable
-                is_subclass_of( $class, 'Illuminate\Database\Eloquent\Model' ) &&
-                in_array(Vectorizable::class, class_implements($class) )
-            ) {
-                $model = new $class;
-                if ($model->getTable() === $tableName){
-                    $models[$tableName] = $model;
-                    return $models[$tableName];
-                }
+        $composer = require base_path() . '/vendor/autoload.php';
+
+        // Define the root namespace and directory for your application
+        $rootNamespace = 'App\\Models\\';
+
+        // Additional models defined by the user
+        $modelClasses = config('scout-qdrant.models', []);
+
+        $allClasses = collect(array_merge($modelClasses, array_keys($composer->getClassMap())))
+            ->filter(fn($class) => str_starts_with($class, $rootNamespace) || in_array($class, $modelClasses))
+            ->filter(fn($class) => is_subclass_of($class, 'Illuminate\Database\Eloquent\Model'));
+
+        foreach ($allClasses as $class) {
+            // Check if the class is within your application's namespace
+            $model = new $class;
+            if ( method_exists($model, 'searchableAs') && $model->searchableAs() === $name){
+                $models[$name] = $model;
+                return $models[$name];
             }
         }
 
+        // No model was found
         return null;
     }
 }

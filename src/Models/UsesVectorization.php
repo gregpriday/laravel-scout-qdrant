@@ -2,7 +2,7 @@
 
 namespace GregPriday\LaravelScoutQdrant\Models;
 
-use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
+use GregPriday\LaravelScoutQdrant\Vectorizer\Manager\VectorizerEngineManager;
 use Illuminate\Support\Facades\DB;
 
 trait UsesVectorization
@@ -20,7 +20,7 @@ trait UsesVectorization
 
     public function getDefaultVectorizer(): string
     {
-        return $this->defaultVectorizer ?? config('scout-qdrant.vectorizer') ?? 'openai';
+        return $this->defaultVectorizer ?? config('scout-qdrant.vectorizer', 'openai');
     }
 
     public function getDefaultVectorField(): string
@@ -44,7 +44,7 @@ trait UsesVectorization
             ->where('vectorizable_id', $this->getKey())
             ->where('vectorizable_type', get_class($this))
             ->where('vectorizer', $vectorizerName)
-            ->where('vectorizer_version', $vectorizer->version())
+            ->where('vectorizer_options', json_encode($vectorizer->getOptions()))
             ->where('field_name', $name)
             ->where('field_hash', '=', hash('sha256', $value))
             ->exists();
@@ -55,19 +55,22 @@ trait UsesVectorization
         $vectorizerName = $this->getVectorizers()[$name];
         $vectorizer = app(VectorizerEngineManager::class)->driver($vectorizerName);
 
+        // Delete the old hash data
         DB::table('vectorization_metadata')
-            ->updateOrInsert(
-                [
-                    'vectorizable_id' => $this->getKey(),
-                    'vectorizable_type' => get_class($this),
-                    'vectorizer' => $vectorizerName,
-                    'vectorizer_version' => $vectorizer->version(),
-                    'field_name' => $name,
-                ],
-                [
-                    'field_hash' => hash('sha256', $value),
-                ]
-            );
+            ->where('vectorizable_id', $this->getKey())
+            ->where('vectorizable_type', get_class($this))
+            ->where('field_name', $name)
+            ->delete();
+
+        DB::table('vectorization_metadata')
+            ->insert([
+                'vectorizable_id' => $this->getKey(),
+                'vectorizable_type' => get_class($this),
+                'vectorizer' => $vectorizerName,
+                'vectorizer_options' => json_encode($vectorizer->getOptions()),
+                'field_name' => $name,
+                'field_hash' => hash('sha256', $value),
+            ]);
     }
 
     public function getVectorFieldHash($name): string|null

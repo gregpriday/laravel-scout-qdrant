@@ -24,6 +24,12 @@ Install the package via Composer:
 composer require gregpriday/laravel-scout-qdrant
 ```
 
+Add migrations with:
+
+```bash
+php artisan vendor:publish --tag="scout-qdrant-migrations"
+```
+
 Publish the configuration file with:
 
 ```bash
@@ -166,6 +172,13 @@ return [
 Now your custom vectorizer will be used to create vectors for your Scout records.
 
 ## Testing
+
+Start Qdrant for testing with:
+
+```bash
+docker pull qdrant/qdrant
+docker run -p 6333:6333 -v $(pwd)/database/qdrant:/qdrant/storage qdrant/qdrant
+````
 
 Execute tests with:
 

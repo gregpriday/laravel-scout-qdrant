@@ -2,6 +2,7 @@
 
 namespace GregPriday\LaravelScoutQdrant\Tests;
 
+use GregPriday\LaravelScoutQdrant\Tests\Models\Article;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Laravel\Scout\ScoutServiceProvider;
 use OpenAI\Laravel\ServiceProvider;
@@ -33,6 +34,10 @@ class TestCase extends Orchestra
 
         config()->set('openai.api_key', env('OPENAI_API_KEY'));
         config()->set('openai.organization', env('OPENAI_ORGANIZATION'));
+
+        config()->set('scout-qdrant.models', [
+            Article::class,
+        ]);
 
         $migration = include __DIR__.'/migrations/create_article_table.php';
         $migration->up();

@@ -9,4 +9,7 @@ return [
         'storage' => env('QDRANT_STORAGE', 'database/qdrant'),
     ],
     'vectorizer' => env('QDRANT_VECTORIZER', 'openai'),
+
+    // Add full model classnames for any classes that exist outside the App\Models namespace.
+    'models' => [],
 ];

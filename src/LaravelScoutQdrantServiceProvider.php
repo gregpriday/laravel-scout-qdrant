@@ -9,7 +9,7 @@ use GregPriday\LaravelScoutQdrant\Commands\QdrantStatusCommand;
 use GregPriday\LaravelScoutQdrant\Commands\QdrantStopCommand;
 use GregPriday\LaravelScoutQdrant\Commands\QdrantUpdateCommand;
 use GregPriday\LaravelScoutQdrant\Scout\QdrantScoutEngine;
-use GregPriday\LaravelScoutQdrant\Vectorizer\VectorizerEngineManager;
+use GregPriday\LaravelScoutQdrant\Vectorizer\Manager\VectorizerEngineManager;
 use Laravel\Scout\EngineManager;
 use Qdrant\Config;
 use Qdrant\Http\GuzzleClient;
