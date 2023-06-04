@@ -23,13 +23,23 @@ class VectorizerEngineManager extends Manager
             $options = json_decode($options, true);
         }
 
-        return parent::driver($driver)->setOptions($options);
+        $driverInstance = parent::driver($driver);
+
+        if (method_exists($driverInstance, 'setOptions')) {
+            $driverInstance->setOptions($options);
+        }
+
+        return $driverInstance;
     }
+
 
     public function extend($driver, Closure $callback)
     {
-        return $this->drivers[$driver] = $callback($this->app);
+        $this->customCreators[$driver] = $callback;
+
+        return $this;
     }
+
 
     public function getDefaultDriver()
     {
