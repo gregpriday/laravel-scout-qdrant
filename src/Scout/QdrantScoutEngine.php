@@ -17,6 +17,7 @@ use Qdrant\Models\MultiVectorStruct;
 use Qdrant\Models\PointsStruct;
 use Qdrant\Models\PointStruct;
 use Qdrant\Models\Request\CreateCollection;
+use Qdrant\Models\Request\RecommendRequest;
 use Qdrant\Models\Request\SearchRequest;
 use Qdrant\Models\VectorStruct;
 use Qdrant\Qdrant;
@@ -25,7 +26,6 @@ class QdrantScoutEngine extends Engine
 {
     private Qdrant $qdrant;
     private VectorizerEngineManager $vectorizerEngineManager;
-    private string $vectorField;
 
     public function __construct(Qdrant $qdrant, VectorizerEngineManager $vectorizerEngineManager)
     {
@@ -133,18 +133,25 @@ class QdrantScoutEngine extends Engine
     {
         $collectionName = $builder->index ?: $builder->model->searchableAs();
         $vectorField = $options['field'] ?? $builder->model->getDefaultVectorField();
+        $qdrantRequest = null;
+        $filter = new Filter();
 
-        $vectorizer = $this->vectorizerEngineManager->driver($builder->model->getVectorizers()[$vectorField] ?? 'openai');
-        $embedding = $vectorizer->embedQuery($builder->query);
-        $vector = new VectorStruct($embedding, $vectorField);
+        if($builder->query instanceof Model){
+            // Create a RecommendRequest
+            $qdrantRequest = new RecommendRequest([$builder->query->getScoutKey()]);
+        } else {
+            // Create a SearchRequest
+            $vectorizer = $this->vectorizerEngineManager->driver($builder->model->getVectorizers()[$vectorField] ?? 'openai');
+            $embedding = $vectorizer->embedQuery($builder->query);
+            $vector = new VectorStruct($embedding, $vectorField);
 
-        $searchRequest = new SearchRequest($vector);
-        $searchRequest->setLimit($options['limit']);
+            $qdrantRequest = new SearchRequest($vector);
+        }
+
+        $qdrantRequest->setLimit($options['limit']);
 
         // Loop through the builder's wheres and add them to the filter
         if(!empty($builder->wheres)){
-            $filter = new Filter();
-
             foreach ($builder->wheres as $field => $value) {
                 if(is_numeric($value)) {
                     $filter->addMust(
@@ -162,14 +169,16 @@ class QdrantScoutEngine extends Engine
             }
 
             // Attach the filter to the search request
-            $searchRequest->setFilter($filter);
+            $qdrantRequest->setFilter($filter);
         }
 
         if (isset($options['offset'])) {
-            $searchRequest->setOffset($options['offset']);
+            $qdrantRequest->setOffset($options['offset']);
         }
 
         if ($builder->callback) {
+            $options['qdrantRequest'] = $qdrantRequest;
+
             return call_user_func(
                 $builder->callback,
                 $this->qdrant,
@@ -178,7 +187,22 @@ class QdrantScoutEngine extends Engine
             );
         }
 
-        return $this->qdrant->collections($collectionName)->points()->search($searchRequest);
+
+        // Get total count.
+        $countResponse = $this->qdrant->collections($collectionName)->count($filter);
+        $count = $countResponse['result']['total_count'] ?? 0;
+
+        // If the request is a RecommendRequest, call the recommend endpoint, else call the search endpoint
+        if($qdrantRequest instanceof RecommendRequest){
+            $result = $this->qdrant->collections($collectionName)->points()->recommend($qdrantRequest);
+        } else {
+            $result = $this->qdrant->collections($collectionName)->points()->search($qdrantRequest);
+        }
+
+        // Add the count to the result.
+        $result['total_count'] = $count;
+
+        return $result;
     }
 
     public function mapIds($results)
@@ -230,7 +254,7 @@ class QdrantScoutEngine extends Engine
 
     public function getTotalCount($results): int
     {
-        return count($results['result']);
+        return $results['total_count'] ?? count($results['result']);
     }
 
     /**
