@@ -114,19 +114,19 @@ class QdrantScoutEngine extends Engine
 
     public function search(Builder $builder)
     {
-        return $this->performSearch($builder, [
+        $options = array_merge($builder->options, [
             'limit' => $builder->limit ?? 100,
-            'field' => $builder->options['field'] ?? null
         ]);
+        return $this->performSearch($builder, $options);
     }
 
     public function paginate(Builder $builder, $perPage, $page)
     {
-        return $this->performSearch($builder, [
-            'limit' => $perPage ?? 100,
+        $options = array_merge($builder->options, [
+            'limit' => $perPage,
             'offset' => ($page - 1) * $perPage,
-            'field' => $builder->options['field'] ?? null
         ]);
+        return $this->performSearch($builder, $options);
     }
 
     protected function performSearch(Builder $builder, array $options = [])
@@ -139,6 +139,7 @@ class QdrantScoutEngine extends Engine
         if($builder->query instanceof Model){
             // Create a RecommendRequest
             $qdrantRequest = new RecommendRequest([$builder->query->getScoutKey()]);
+            $qdrantRequest->setUsing($vectorField);
         } else {
             // Create a SearchRequest
             $vectorizer = $this->vectorizerEngineManager->driver($builder->model->getVectorizers()[$vectorField] ?? 'openai');
@@ -176,6 +177,10 @@ class QdrantScoutEngine extends Engine
             $qdrantRequest->setOffset($options['offset']);
         }
 
+        if(isset($options['score_threshold'])) {
+            $qdrantRequest->setScoreThreshold($options['score_threshold']);
+        }
+
         if ($builder->callback) {
             $options['qdrantRequest'] = $qdrantRequest;
 
@@ -187,11 +192,6 @@ class QdrantScoutEngine extends Engine
             );
         }
 
-
-        // Get total count.
-        $countResponse = $this->qdrant->collections($collectionName)->count($filter);
-        $count = $countResponse['result']['total_count'] ?? 0;
-
         // If the request is a RecommendRequest, call the recommend endpoint, else call the search endpoint
         if($qdrantRequest instanceof RecommendRequest){
             $result = $this->qdrant->collections($collectionName)->points()->recommend($qdrantRequest);
@@ -199,10 +199,17 @@ class QdrantScoutEngine extends Engine
             $result = $this->qdrant->collections($collectionName)->points()->search($qdrantRequest);
         }
 
-        // Add the count to the result.
-        $result['total_count'] = $count;
+        return [
+            'result' => $result['result'],
 
-        return $result;
+            // We need to know the original collection, filters and score_threshold to paginate results
+            'filter' => $filter,
+            'score_threshold' => $options['score_threshold'] ?? null,
+            'collection' => $collectionName,
+
+            // This is a workaround for Qdrant not supporting score_threshold in counting
+            'request' => $qdrantRequest,
+        ];
     }
 
     public function mapIds($results)
@@ -252,9 +259,50 @@ class QdrantScoutEngine extends Engine
         });
     }
 
+    /**
+     * @param $results
+     * @return int
+     * @throws InvalidArgumentException
+     */
     public function getTotalCount($results): int
     {
-        return $results['total_count'] ?? count($results['result']);
+        // If the result count is less than the limit, we know this is the total.
+        if (count($results['result']) < $results['limit']) {
+            return count($results['result']);
+        }
+
+        // Otherwise, we need to get the total count from Qdrant.
+        if(empty($results['score_threshold'])) {
+            // We can use core functionality to get the total count
+            $countResponse = $this->qdrant
+                ->collections($results['collection'])
+                ->points()
+                ->count($results['filter']);
+
+            return $countResponse['result']['count'];
+        }
+        else {
+            // Because Qdrant doesn't support counting with a score threshold, we need to get all the results and count them ourselves.
+            // TODO - Remove this once Qdrant supports counting with a score threshold https://github.com/qdrant/qdrant/issues/2091
+
+            $qdrantRequest = $results['request'];
+
+            // Set a very high limit and an offset of 0 to get all the results
+            $qdrantRequest->setLimit(10_000);
+            $qdrantRequest->setOffset(0);
+
+            // If the request is a RecommendRequest, call the recommend endpoint, else call the search endpoint
+            if($qdrantRequest instanceof RecommendRequest){
+                $result = $this->qdrant->collections($results['collection'])->points()->recommend($qdrantRequest);
+            } else {
+                $result = $this->qdrant->collections($results['collection'])->points()->search($qdrantRequest);
+            }
+
+            // Perform the count and return the number of results
+            return collect($result['result'])
+                ->filter(fn($item) => $item['score'] >= $results['score_threshold'])
+                ->count();
+        }
     }
 
     /**
