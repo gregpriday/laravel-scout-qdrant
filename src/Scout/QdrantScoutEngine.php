@@ -203,6 +203,7 @@ class QdrantScoutEngine extends Engine
             'result' => $result['result'],
 
             // We need to know the original collection, filters and score_threshold to paginate results
+            'limit' => $options['limit'],
             'filter' => $filter,
             'score_threshold' => $options['score_threshold'] ?? null,
             'collection' => $collectionName,
@@ -266,11 +267,6 @@ class QdrantScoutEngine extends Engine
      */
     public function getTotalCount($results): int
     {
-        // If the result count is less than the limit, we know this is the total.
-        if (count($results['result']) < $results['limit']) {
-            return count($results['result']);
-        }
-
         // Otherwise, we need to get the total count from Qdrant.
         if(empty($results['score_threshold'])) {
             // We can use core functionality to get the total count
