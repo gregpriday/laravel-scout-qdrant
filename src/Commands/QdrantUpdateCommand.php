@@ -28,18 +28,25 @@ class QdrantUpdateCommand extends Command
         if ($return_var !== 0) {
             $this->error('Failed to update Qdrant Docker image');
         } else {
-            // Stop the running Qdrant container
-            exec('docker stop $(docker ps -q --filter ancestor=qdrant/qdrant)', $output, $return_var);
-            if ($return_var !== 0) {
-                $this->error('Failed to stop running Qdrant Docker container');
-                return;
+            // Check if the Qdrant container is running
+            exec('docker ps --filter ancestor=qdrant/qdrant --format "{{.ID}}"', $runningContainers, $return_var);
+            if (!empty($runningContainers)) {
+                // Stop the running Qdrant container
+                $s = exec('docker stop $(docker ps -q --filter ancestor=qdrant/qdrant)', $output, $return_var);
+                if ($return_var !== 0) {
+                    $this->error('Failed to stop running Qdrant Docker container');
+                    return;
+                }
             }
 
-            // Remove the old Qdrant container
-            exec('docker rm $(docker ps -a -q --filter ancestor=qdrant/qdrant)', $output, $return_var);
-            if ($return_var !== 0) {
-                $this->error('Failed to remove old Qdrant Docker container');
-                return;
+            // Remove the old Qdrant container (if it exists)
+            exec('docker ps -a -q --filter ancestor=qdrant/qdrant', $allContainers, $return_var);
+            if (!empty($allContainers)) {
+                exec('docker rm $(docker ps -a -q --filter ancestor=qdrant/qdrant)', $output, $return_var);
+                if ($return_var !== 0) {
+                    $this->error('Failed to remove old Qdrant Docker container');
+                    return;
+                }
             }
 
             $this->info('Successfully updated Qdrant Docker image. Please run `php artisan qdrant:start` to start the new container.');
